@@ -1,0 +1,97 @@
+// Animation settings.
+// The wiki explains how to configure individual animations:
+// https://yalter.github.io/niri/Configuration:-Animations
+animations {
+    // Uncomment to turn off all animations.
+    // off
+    workspace-switch {
+        spring damping-ratio=0.75 stiffness=500 epsilon=0.0001
+    }
+    window-close {
+        duration-ms 500
+        curve "linear"
+        custom-shader "vec4 fall_and_rotate(vec3 coords_geo, vec3 size_geo) {
+                float fall_distance = 1200.0;
+                float rotation_amplitude = 0.5;
+
+                float progress = clamp(niri_clamped_progress, 0.0, 1.0);
+                float eased = progress * progress * (3.0 - 2.0 * progress);
+                vec2 coords = (coords_geo.xy - vec2(0.5, 1.0)) * size_geo.xy;
+
+                coords.y -= eased * fall_distance;
+
+                float direction = niri_random_seed < 0.5 ? -1.0 : 1.0;
+                float angle = eased * rotation_amplitude * direction;
+                float sine = sin(angle);
+                float cosine = cos(angle);
+                coords = mat2(cosine, -sine, sine, cosine) * coords;
+
+                coords_geo = vec3(coords / size_geo.xy + vec2(0.5, 1.0), 1.0);
+                vec3 coords_tex = niri_geo_to_tex * coords_geo;
+                vec4 color = texture2D(niri_tex, coords_tex.st);
+                color.a *= 1.0 - progress;
+                return color;
+            }
+            vec4 close_color(vec3 coords_geo, vec3 size_geo) {
+                return fall_and_rotate(coords_geo, size_geo);
+            }"
+    }
+    window-open {
+        duration-ms 500
+        curve "linear"
+        custom-shader "vec4 fall_from_top(vec3 coords_geo, vec3 size_geo) {
+            float overshoot_strength = 1.25;
+            float bounce_amplitude = 0.15;
+            float bounce_frequency = 1.0;
+            float max_rotation = 0.5;
+            float fall_distance = 1000.0;
+
+            float progress = clamp(niri_clamped_progress, 0.0, 1.0);
+            float inverse_progress = progress - 1.0;
+            float c1 = overshoot_strength * 0.85;
+            float c3 = c1 + 1.0;
+            float eased = 1.0 + c3 * inverse_progress * inverse_progress * inverse_progress
+                + c1 * inverse_progress * inverse_progress;
+
+            vec2 coords = (coords_geo.xy - vec2(0.5, 0.0)) * size_geo.xy;
+            coords.y += (1.0 - eased) * fall_distance;
+
+            float settle = 1.0 - progress;
+            float bounce = sin(eased * 3.14159 * bounce_frequency) * settle;
+            float angle = settle * max_rotation * (1.0 + bounce_amplitude * bounce);
+            float sine = sin(angle);
+            float cosine = cos(angle);
+            coords = mat2(cosine, -sine, sine, cosine) * coords;
+
+            coords_geo = vec3(coords / size_geo.xy + vec2(0.5, 0.0), 1.0);
+            vec3 coords_tex = niri_geo_to_tex * coords_geo;
+            return texture2D(niri_tex, coords_tex.st);
+        }
+        vec4 open_color(vec3 coords_geo, vec3 size_geo) {
+            return fall_from_top(coords_geo, size_geo);
+        }"
+    }
+    horizontal-view-movement {
+        spring damping-ratio=0.75 stiffness=500 epsilon=0.0001
+    }
+    window-movement {
+        spring damping-ratio=0.75 stiffness=500 epsilon=0.0001
+    }
+    window-resize {
+        spring damping-ratio=0.75 stiffness=500 epsilon=0.0001
+    }
+    config-notification-open-close {
+        spring damping-ratio=0.5 stiffness=500 epsilon=0.0001
+    }
+    exit-confirmation-open-close {
+        spring damping-ratio=0.5 stiffness=500 epsilon=0.0001
+    }
+    screenshot-ui-open {
+        spring damping-ratio=0.75 stiffness=500 epsilon=0.0001
+    }
+    overview-open-close {
+        spring damping-ratio=0.75 stiffness=500 epsilon=0.0001
+    }
+    // Slow down all animations by this factor. Values below 1 speed them up instead.
+    // slowdown 3.0
+}
